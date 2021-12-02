@@ -13,16 +13,17 @@ rm = lambda path : [os.remove(f) for f in glob.glob(path)]
 TMP = os.environ['TMP']
 
 def execute(cmd):
-	print(cmd)
+	print("EXECUTING:", cmd)
 	return os.system(cmd)
 
-def compile(compiler, cfiles, target="exe", includes=["."], output_folder="."):
+def compile(compiler, cfiles, defines=[], target="exe", includes=["."], output_folder="."):
 	code = 0
 	rand = random.randint(1, 9999999)
 	PDB_NAME='%s/ROSE_SYMBOLS_%d.pdb' % (TMP, rand)
 
 
-	EXTRA_C_FILES = " ".join(["./" + D for D in cfiles])
+	arg_c_files = " ".join(["./" + D for D in cfiles])
+	arg_defines = " ".join(["/D" + D for D in defines])
 
 	CPP_FILE=C_FILES[-1]
 
@@ -34,7 +35,7 @@ def compile(compiler, cfiles, target="exe", includes=["."], output_folder="."):
 	#TODO: check target == exe or dll
 	#error = os.system(f'CL /nologo /MP /std:c++17 /wd"4530" /Zi /LD /MD {INCLUDES} /Fe{output_folder} {CPP_FILE} source/roseimpl.cpp ../../.build/bin/DebugFast/raylib.lib /link /incremental /PDB:"{PDB_NAME}" > %TMP%/clout.txt')
 	dll_stuff = "/LD /MD"
-	error = execute(f'{compiler} /nologo /MP /std:c++17 /wd"4530" /Zi {dll_stuff} {INCLUDES} /Fe{output_folder} {EXTRA_C_FILES} ../../rose/.build/bin/Release/raylib.lib /link /incremental /PDB:"{PDB_NAME}" > {TMP}/clout.txt')
+	error = execute(f'{compiler} /nologo /MP /std:c++17 /wd"4530" {arg_defines} /Zi {dll_stuff} {INCLUDES} /Fe{output_folder} {arg_c_files} ../../rose/.build/bin/Release/raylib.lib /link /incremental /PDB:"{PDB_NAME}" > {TMP}/clout.txt')
 
 	if error:
 		code = 1
@@ -61,6 +62,8 @@ def compile(compiler, cfiles, target="exe", includes=["."], output_folder="."):
 
 INCLUDE_ARRAY = [
 	"."
+	,"../externals/bullet3/examples/BasicDemo"
+	,"../externals/bullet3/src"
 	,"../externals/roselib/include"
 	,"../externals/raylib/src"
 	,"../externals/include"
@@ -68,7 +71,14 @@ INCLUDE_ARRAY = [
 ]
 
 C_FILES = [
-	"system.game.cpp"
+	"system.game.cpp",
+	"../externals/bullet3/src/btBulletCollisionAll.cpp",
+	"../externals/bullet3/src/btBulletDynamicsAll.cpp",
+	"../externals/bullet3/src/btLinearMathAll.cpp"
+]
+
+DEFINES = [
+	"__BT_DISABLE_SSE__"
 ]
 
 output_folder = "."
@@ -93,7 +103,7 @@ class MyClass(FileSystemEventHandler):
 		if remove_non_alpha(event.src_path) in (remove_non_alpha(f) for f in self.files):
 			#print the file name
 			print("recompile", event.src_path)
-			compile("CL", includes=INCLUDE_ARRAY, target="dll", cfiles=C_FILES, output_folder=output_folder)
+			compile("CL", includes=INCLUDE_ARRAY, defines=DEFINES, target="dll", cfiles=C_FILES, output_folder=output_folder)
 
 if __name__ == "__main__":
 	watch = False
@@ -104,7 +114,7 @@ if __name__ == "__main__":
 		if arg == "--watch" or arg == "-W":
 			watch = True
 
-	compile("CL", includes=INCLUDE_ARRAY, target="dll", cfiles=C_FILES, output_folder=output_folder)
+	compile("CL", includes=INCLUDE_ARRAY, defines=DEFINES, target="dll", cfiles=C_FILES, output_folder=output_folder)
 
 	if watch:
 		logging.basicConfig(level=logging.INFO,
