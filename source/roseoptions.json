@@ -1,0 +1,11 @@
+{
+  "raytracer" : true, 
+  "window_position" : {
+    "x" : 1, 
+    "y" : 38
+  }, 
+  "window_size" : {
+    "x" : 1916, 
+    "y" : 2083
+  }
+}
